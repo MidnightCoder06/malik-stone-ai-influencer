@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
 // Initialize Grok client (uses OpenAI-compatible API)
-const client = new OpenAI({
+const grokClient = new OpenAI({
   apiKey: process.env.XAI_API_KEY || '',
   baseURL: 'https://api.x.ai/v1',
+})
+
+// Initialize OpenAI client for moderation
+const openaiClient = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
 })
 
 // System prompt to define the AI influencer personality
@@ -28,6 +33,9 @@ Communication style:
 
 Remember: You're chatting with fans who clicked your Instagram bio link. Make them feel special for reaching out! Keep the conversation flowing naturally and make each interaction memorable.`
 
+// Moderation rejection message
+const MODERATION_REJECTION = "Hey, I appreciate you reaching out, but I'd love to keep our conversation positive and appropriate. Let's chat about something else! What else is on your mind? 💫"
+
 export async function POST(request: NextRequest) {
   try {
     const { messages } = await request.json()
@@ -46,6 +54,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get the latest user message for moderation
+    const latestUserMessage = messages
+      .filter((m: { role: string }) => m.role === 'user')
+      .pop()
+
+    // Check moderation if OpenAI API key is configured
+    if (process.env.OPENAI_API_KEY && latestUserMessage) {
+      try {
+        const moderationResponse = await openaiClient.moderations.create({
+          input: latestUserMessage.content,
+        })
+
+        const results = moderationResponse.results[0]
+
+        // Check if flagged for sexual content
+        if (results.flagged && (results.categories.sexual || results.categories['sexual/minors'])) {
+          console.log('Message blocked by moderation:', {
+            categories: results.categories,
+            scores: results.category_scores,
+          })
+          return NextResponse.json({ message: MODERATION_REJECTION })
+        }
+      } catch (moderationError) {
+        // Log but don't block if moderation fails - let the message through
+        console.error('Moderation API Error:', moderationError)
+      }
+    }
+
     // Prepare messages for the API
     const apiMessages = [
       { role: 'system' as const, content: SYSTEM_PROMPT },
@@ -56,7 +92,7 @@ export async function POST(request: NextRequest) {
     ]
 
     // Call Grok API
-    const completion = await client.chat.completions.create({
+    const completion = await grokClient.chat.completions.create({
       model: 'grok-3',
       messages: apiMessages,
       temperature: 0.8,
@@ -92,4 +128,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
