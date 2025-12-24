@@ -81,7 +81,7 @@ export default function LandingPage() {
         >
           <p className="text-gray-300 text-base md:text-lg leading-relaxed">
             Ready for a real conversation? I'm here to chat about anything on your mind. 
-            Life, dreams, advice, or just vibing together. Let's connect! 💜
+            Life, dreams, advice, or just vibing together. Let's connect 💜
           </p>
         </motion.div>
 
