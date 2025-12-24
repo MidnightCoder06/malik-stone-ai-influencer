@@ -12,6 +12,8 @@ This is a Next.js 14 chat application for an AI influencer (Malik Stone). Users 
 - **Animations:** Framer Motion
 - **AI Backend:** Grok AI (xAI) via OpenAI-compatible SDK
 - **Content Moderation:** OpenAI Moderation API
+- **Payments:** Stripe Checkout (pay-per-session)
+- **Auth:** JWT session tokens (jose library)
 
 ---
 
@@ -21,11 +23,22 @@ This is a Next.js 14 chat application for an AI influencer (Malik Stone). Users 
 malik-stone-chat-site/
 ├── app/                          # Next.js App Router directory
 │   ├── api/                      # API routes (backend)
-│   │   └── chat/
-│   │       └── route.ts          # POST endpoint for Grok AI chat
+│   │   ├── chat/
+│   │   │   └── route.ts          # POST endpoint for Grok AI chat
+│   │   ├── create-checkout/
+│   │   │   └── route.ts          # Creates Stripe checkout session
+│   │   ├── payment-success/
+│   │   │   └── route.ts          # Handles successful payment, sets session
+│   │   └── verify-session/
+│   │       └── route.ts          # Verifies user has paid for access
+│   ├── chat/
+│   │   └── page.tsx              # Protected chat page (requires payment)
 │   ├── globals.css               # Global styles, animations, CSS variables
 │   ├── layout.tsx                # Root layout (metadata, background effects)
-│   └── page.tsx                  # Main chat page component
+│   └── page.tsx                  # Landing page with payment button
+│
+├── public/                       # Static assets
+│   └── malik-stone-first-post.png  # AI avatar image
 │
 ├── node_modules/                 # Dependencies (git-ignored)
 │
@@ -44,10 +57,20 @@ malik-stone-chat-site/
 
 ## Key Files Explained
 
-### `/app/page.tsx` — Main Chat Interface
+### `/app/page.tsx` — Landing Page
 
-The primary user-facing component. Contains:
+The entry point for Instagram traffic. Contains:
 
+- **Hero Section:** Avatar, title, description
+- **Features List:** Highlights what users get
+- **Payment Button:** Triggers Stripe Checkout
+- **Trust Badges:** "Secure Payment" / "Powered by Stripe"
+
+### `/app/chat/page.tsx` — Protected Chat Interface
+
+The chat page (requires payment). Contains:
+
+- **Session Check:** Verifies payment on mount, redirects if unauthorized
 - **State Management:** Messages array, input value, loading states
 - **Message Display:** Animated message bubbles with user/assistant styling
 - **Input Area:** Textarea with Enter-to-send, loading states
@@ -55,6 +78,7 @@ The primary user-facing component. Contains:
 - **Typing Indicator:** Animated dots while AI responds
 
 Key features:
+- Protected by session token (must pay to access)
 - No conversation persistence (state resets on page refresh)
 - Mobile-responsive design
 - Framer Motion animations for smooth UX
@@ -105,8 +129,28 @@ Extends Tailwind with:
 
 ## Data Flow
 
+### Payment Flow
 ```
-User Input → page.tsx (client)
+Landing Page (/) → Click "Chat with Me $5"
+     ↓
+POST /api/create-checkout → Stripe Checkout Session
+     ↓
+Redirect to Stripe Checkout (external)
+     ↓
+User Pays $5
+     ↓
+Stripe redirects to /api/payment-success
+     ↓
+Verify payment → Create JWT session token → Set cookie
+     ↓
+Redirect to /chat (protected page)
+```
+
+### Chat Flow
+```
+User Input → /chat/page.tsx (client)
+     ↓
+Verify session cookie (on mount)
      ↓
 POST /api/chat → route.ts (server)
      ↓
@@ -120,14 +164,17 @@ Grok AI API (external)
 Response → route.ts → page.tsx → UI Update
 ```
 
-1. User types message and hits Enter/Send
-2. Message added to local state, API call initiated
-3. Server checks message with OpenAI Moderation API
-4. If flagged for sexual content → returns friendly rejection
-5. If clean → formats messages with system prompt
-6. Grok AI generates response
-7. Response returned to client, added to messages
-8. UI updates with new message
+### Step by Step
+1. User lands on `/` from Instagram bio
+2. Clicks "Chat with Me - $5" button
+3. Redirected to Stripe Checkout
+4. Completes payment
+5. Stripe redirects to `/api/payment-success`
+6. Server verifies payment, creates session token (JWT)
+7. Token stored in HTTP-only cookie (24 hour expiry)
+8. User redirected to `/chat`
+9. Chat page verifies session on load
+10. User can now chat with AI
 
 ---
 
@@ -137,11 +184,17 @@ Response → route.ts → page.tsx → UI Update
 |----------|----------|-------------|
 | `XAI_API_KEY` | Yes | Grok AI API key from console.x.ai |
 | `OPENAI_API_KEY` | Yes | OpenAI API key for moderation from platform.openai.com |
+| `STRIPE_SECRET_TEST_KEY` | Yes | Stripe secret key from dashboard.stripe.com |
+| `SESSION_SECRET` | Yes | Random string for signing JWT tokens (min 32 chars) |
+| `NEXT_PUBLIC_BASE_URL` | Yes | Your site URL (e.g., https://yourdomain.com) |
 
 Create `.env.local` file (git-ignored):
 ```
 XAI_API_KEY=xai-xxxxxxxxxxxxx
 OPENAI_API_KEY=sk-xxxxxxxxxxxxx
+STRIPE_SECRET_TEST_KEY=sk_test_xxxxxxxxxxxxx
+SESSION_SECRET=your-random-secret-string-at-least-32-characters
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
 ```
 
 ---
@@ -186,6 +239,39 @@ If the moderation API fails (e.g., missing API key, rate limit), messages are **
 
 ---
 
+## Stripe Paywall
+
+The site requires a $5 payment before users can access the chat. This uses Stripe Checkout for secure payment processing.
+
+### How It Works
+
+1. **Landing Page** (`/`) — Shows avatar, description, and "Chat with Me - $5" button
+2. **Checkout** — Clicking the button creates a Stripe Checkout session and redirects to Stripe
+3. **Payment** — User enters card details on Stripe's hosted page
+4. **Success** — After payment, Stripe redirects to `/api/payment-success`
+5. **Session Token** — Server verifies payment, creates a JWT, stores it in an HTTP-only cookie
+6. **Chat Access** — User is redirected to `/chat`, which verifies the session before allowing access
+
+### Session Details
+
+- **Token Type:** JWT (JSON Web Token)
+- **Storage:** HTTP-only cookie (secure, not accessible via JavaScript)
+- **Expiry:** 24 hours from payment
+- **Validation:** Checked on every `/chat` page load
+
+### Stripe Test Mode
+
+For testing, use Stripe test keys (start with `sk_test_`). Test card: `4242 4242 4242 4242`
+
+### Changing the Price
+
+Edit `/app/api/create-checkout/route.ts`:
+```typescript
+unit_amount: 500, // $5.00 in cents — change to 1000 for $10, etc.
+```
+
+---
+
 ## Customization Points
 
 | What | Where | Notes |
@@ -194,8 +280,10 @@ If the moderation API fails (e.g., missing API key, rate limit), messages are **
 | Colors/Theme | `tailwind.config.ts` | Modify color palette |
 | Animations | `app/globals.css` | CSS keyframes section |
 | Branding | `app/layout.tsx` | Metadata title/description |
-| Avatar/Header | `app/page.tsx` | Header section JSX |
-| Chat Styling | `app/page.tsx` | Message bubble classes |
+| Landing Page | `app/page.tsx` | Hero, features, CTA button |
+| Chat Page | `app/chat/page.tsx` | Header, messages, input |
+| Price | `app/api/create-checkout/route.ts` | `unit_amount` in cents |
+| Session Expiry | `app/api/payment-success/route.ts` | `setExpirationTime()` |
 
 ---
 
