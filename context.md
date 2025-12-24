@@ -184,7 +184,7 @@ Response → route.ts → page.tsx → UI Update
 |----------|----------|-------------|
 | `XAI_API_KEY` | Yes | Grok AI API key from console.x.ai |
 | `OPENAI_API_KEY` | Yes | OpenAI API key for moderation from platform.openai.com |
-| `STRIPE_SECRET_TEST_KEY` | Yes | Stripe secret key from dashboard.stripe.com |
+| `STRIPE_SECRET_KEY` | Yes | Stripe secret key from dashboard.stripe.com |
 | `SESSION_SECRET` | Yes | Random string for signing JWT tokens (min 32 chars) |
 | `NEXT_PUBLIC_BASE_URL` | Yes | Your site URL (e.g., https://yourdomain.com) |
 
@@ -192,7 +192,7 @@ Create `.env.local` file (git-ignored):
 ```
 XAI_API_KEY=xai-xxxxxxxxxxxxx
 OPENAI_API_KEY=sk-xxxxxxxxxxxxx
-STRIPE_SECRET_TEST_KEY=sk_test_xxxxxxxxxxxxx
+STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxx
 SESSION_SECRET=your-random-secret-string-at-least-32-characters
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 ```
@@ -296,3 +296,5 @@ npm run start    # Start production server
 npm run lint     # Run ESLint
 ```
 
+## TODO
+* Chat download button 

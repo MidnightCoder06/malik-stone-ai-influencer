@@ -40,7 +40,7 @@ XAI_API_KEY=your_grok_api_key
 OPENAI_API_KEY=your_openai_api_key
 
 # Stripe
-STRIPE_SECRET_TEST_KEY=sk_test_xxxxxxxxxxxxx
+STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxx
 
 # Session
 SESSION_SECRET=your_random_32_char_secret
@@ -97,7 +97,7 @@ See all test transactions at [dashboard.stripe.com/test/payments](https://dashbo
 ### Going Live
 
 1. Switch to live Stripe keys (starting with `sk_live_`)
-2. Update `STRIPE_SECRET_TEST_KEY` to your live key (or rename to `STRIPE_SECRET_KEY`)
+2. Update `STRIPE_SECRET_KEY` to your live key (or rename to `STRIPE_SECRET_KEY`)
 3. Update `NEXT_PUBLIC_BASE_URL` to your production domain
 
 ---
@@ -111,7 +111,7 @@ See all test transactions at [dashboard.stripe.com/test/payments](https://dashbo
 3. Add all environment variables in Vercel's dashboard:
    - `XAI_API_KEY`
    - `OPENAI_API_KEY`
-   - `STRIPE_SECRET_TEST_KEY`
+   - `STRIPE_SECRET_KEY`
    - `SESSION_SECRET`
    - `NEXT_PUBLIC_BASE_URL` (your production URL)
 4. Deploy!
