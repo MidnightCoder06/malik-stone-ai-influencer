@@ -85,28 +85,11 @@ export default function LandingPage() {
           </p>
         </motion.div>
 
-        {/* Features */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="flex flex-wrap justify-center gap-3 mb-8"
-        >
-          {['💬 Real Conversations', '🎯 Personal Advice', '✨ Always Available'].map((feature, i) => (
-            <span 
-              key={i}
-              className="bg-twilight/50 border border-gray-700/50 rounded-full px-4 py-2 text-sm text-gray-300"
-            >
-              {feature}
-            </span>
-          ))}
-        </motion.div>
-
         {/* CTA Button */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.5 }}
         >
           <button
             onClick={handlePayment}
@@ -134,7 +117,7 @@ export default function LandingPage() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.7 }}
           className="mt-8 flex items-center justify-center gap-4 text-gray-500 text-sm"
         >
           <span className="flex items-center gap-1">
